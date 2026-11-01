@@ -1,0 +1,64 @@
+# dsh-seal: application layer encrypted channel in front of dsh-proxy.
+# Example unit: copy to /etc/systemd/system/dsh-seal.service and adjust User,
+# paths and the IPAddressDeny list. Rollback: `seal-switch.sh off` (the reverse
+# proxy back to the upstream on 3081) BEFORE stopping or disabling the unit. If it keeps failing, OnFailure
+# runs dsh-seal-fallback.service (seal-switch.sh off).
+[Unit]
+Description=dsh-seal (sealed channel for DSH web traffic, 127.0.0.1:3082 -> dsh-proxy 3081)
+After=network.target dsh-proxy.service
+Wants=dsh-proxy.service
+OnFailure=dsh-seal-fallback.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=dsh
+Group=dsh
+ExecStart=/opt/dsh-seal/bin/dsh-seal -config /opt/dsh-seal/deploy/dsh-seal.conf
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=2
+Environment=GOMAXPROCS=2
+MemoryMax=128M
+MemorySwapMax=0
+TasksMax=256
+LimitNOFILE=16384
+UMask=0077
+
+# Hardening: loopback only, read-only system and home except the key directory.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/dsh/.local/state/dsh-seal
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+# Sealed egress: dsh-seal fetches public internet hosts for
+# sealed pages. Loopback stays allowed (dsh-proxy, the DNS stub); private,
+# link-local (cloud metadata), CGNAT, ULA, multicast and the server's own
+# public addresses (replace 1.2.3.4/32 and 2a01:4f8:1:2::/64 with yours) are denied by the kernel as a second wall under the Go SSRF
+# guard (an address in both lists is allowed, so loopback wins).
+IPAddressAllow=localhost
+IPAddressDeny=0.0.0.0/8 10.0.0.0/8 100.64.0.0/10 169.254.0.0/16 172.16.0.0/12 192.168.0.0/16 192.0.0.0/24 198.18.0.0/15 224.0.0.0/4 240.0.0.0/4 fc00::/7 fe80::/10 ff00::/8 1.2.3.4/32 2a01:4f8:1:2::/64
+
+[Install]
+WantedBy=multi-user.target

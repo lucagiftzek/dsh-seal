@@ -1,0 +1,1 @@
+"use strict";(()=>{self.addEventListener("install",()=>self.skipWaiting());self.addEventListener("activate",t=>{t.waitUntil((async()=>{for(let e of await caches.keys())e.startsWith("dsh-seal-")&&await caches.delete(e);await self.registration.unregister()})())});})();

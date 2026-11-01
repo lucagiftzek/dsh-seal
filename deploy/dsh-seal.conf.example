@@ -1,0 +1,47 @@
+# dsh-seal configuration example. Copy to deploy/dsh-seal.conf (git ignores
+# it) and adjust. Format: key=value, one per line, # comments; lists are
+# comma-separated. Reload with SIGHUP (systemctl reload dsh-seal), no restart.
+# Mode changes: `scripts/seal-switch.sh mode passthrough|offer|require`.
+
+# Where dsh-seal listens (loopback; the reverse proxy points here) and the
+# upstream it forwards to (your DSH, or the proxy in front of it).
+listen=127.0.0.1:3082
+upstream=127.0.0.1:3081
+
+# passthrough: nothing changes. offer: sealed when the browser can, plain
+# fallback. require: plain requests are refused except plain_paths.
+mode=offer
+
+# Long-term identity and key exchange keys live here (0700).
+state_dir=/home/dsh/.local/state/dsh-seal
+
+# Identities whose traffic is sealed: the value of identity_header that your
+# auth gateway sets after login (lower case emails, "*" = everyone). Anyone
+# else passes through untouched.
+identity_header=X-Auth-Email
+identities=alice@example.com,bob@example.org
+
+# The DSH shell page(s) that get boot.js injected.
+shell_paths=/
+
+# Prefixes the reverse proxy routes to OTHER services on the same host: the
+# client never seals them.
+exclude_prefixes=/__auth
+
+# Allowed in plain even in require mode (prefix match).
+plain_paths=/favicon.svg,/favicon-dark.svg,/favicon.ico,/manifest.webmanifest
+
+# Key exchange rotation and idle session lifetime.
+kx_rotate=168h
+session_ttl=24h
+
+# Sealed egress: requests of sealed pages to OTHER hosts are fetched by
+# dsh-seal (https only, public addresses only) and returned sealed.
+# Kill switch: egress=off (other hosts go direct and show as Detectable).
+egress=on
+egress_identities=*
+# Your server's own public addresses are never fetched (examples, replace).
+egress_deny_cidrs=1.2.3.4/32,2a01:4f8:1:2::/64
+# egress_deny_hosts=example-tracker.com
+# egress_ports=443
+# egress_webrtc=block

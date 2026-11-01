@@ -1,0 +1,7 @@
+/bin/
+/client/node_modules/
+/test/out/
+*.test
+# live files: never commit
+/deploy/dsh-seal.conf
+/deploy/backup/

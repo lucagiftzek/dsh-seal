@@ -1,0 +1,15 @@
+# dsh-seal-fallback: OnFailure of dsh-seal.service. When dsh-seal keeps failing
+# (systemd gave up restarting it), point the reverse proxy back to the upstream
+# (127.0.0.1:3081 in the examples), so the DSH host keeps working without the
+# seal. Browsers recover by themselves (SEAL_ABSENT retires the worker).
+# Set the same SEAL_* variables seal-switch.sh needs (see the README).
+[Unit]
+Description=dsh-seal fallback (reverse proxy back to the upstream)
+
+[Service]
+Type=oneshot
+Environment=TMPDIR=/var/tmp
+Environment=SEAL_TRAEFIK_FILE=/etc/traefik/dynamic/dsh.yml
+Environment=SEAL_TRAEFIK_SERVICE=dsh-backend
+Environment=SEAL_HOST=dsh.example.com
+ExecStart=/opt/dsh-seal/scripts/seal-switch.sh off
