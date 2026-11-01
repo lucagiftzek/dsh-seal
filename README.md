@@ -1,6 +1,6 @@
 # dsh-seal
 
-An encrypted channel in front of DSH web: a Go reverse proxy plus a service worker that seal all traffic.
+An encrypted channel in front of DSH web: a Go reverse proxy plus a service worker that seals all traffic.
 
 ```bash
 git clone https://github.com/lucagiftzek/dsh-seal.git && cd dsh-seal
